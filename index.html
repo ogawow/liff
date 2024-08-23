@@ -1,140 +1,282 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIFF + Claude Flex Message Creator</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
-        h1 {
-            color: #00b900;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        #userInput {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #00b900;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #009900;
-        }
-        #shareButton {
-            background-color: #4a4a4a;
-            margin-left: 10px;
-        }
-        #shareButton:hover {
-            background-color: #333;
-        }
-        .button-container {
-            text-align: center;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    </style>
-</head>
-<body>
-    <h1>Flex Message Creator</h1>
-    <textarea id="userInput" rows="4" placeholder="メッセージを入力してください"></textarea>
-    <div class="button-container">
-        <button onclick="generateFlexMessage()">Flexメッセージを生成</button>
-        <button id="shareButton" onclick="shareMessage()" style="display:none;">メッセージを共有</button>
-    </div>
-    <div id="result"></div>
+import React, { useState, useEffect } from 'react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import liff from '@line/liff';
 
-    <script>
-        let generatedFlexMessage;
+const WeekCalendar = () => {
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [isLiffInitialized, setIsLiffInitialized] = useState(false);
 
-        async function initializeLiff() {
-            try {
-                await liff.init({ liffId: "1661032313-WdPDq4PV" });
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                }
-            } catch (error) {
-                console.error('LIFF initialization failed', error);
-                document.getElementById('result').innerHTML = 'LIFFの初期化に失敗しました。';
+  useEffect(() => {
+    // LIFFの初期化
+    const liffId = process.env.REACT_APP_LIFF_ID; // 環境変数からLIFF IDを取得
+    if (!liffId) {
+      console.error('LIFF ID is not defined');
+      return;
+    }
+
+    liff.init({ liffId })
+      .then(() => {
+        console.log('LIFF initialized successfully');
+        setIsLiffInitialized(true);
+      })
+      .catch((error) => {
+        console.error('LIFF initialization failed', error);
+      });
+  }, []);
+
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const getWeekDates = (date) => {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(date);
+      day.setDate(date.getDate() - date.getDay() + i);
+      week.push(formatDate(day));
+    }
+    return week;
+  };
+
+  const weekDates = getWeekDates(currentWeek);
+
+  const handlePrevWeek = () => {
+    const newDate = new Date(currentWeek);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentWeek(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(currentWeek);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentWeek(newDate);
+  };
+
+  const sendFlexMessage = async (date) => {
+    if (!liff.isInClient()) {
+      alert('This button is only available in LINE app');
+      return;
+    }
+
+    const flexMessage = {
+      type: "flex",
+      altText: "健康記録 " + date,
+      contents: {
+        type: "bubble",
+        size: "giga",
+        header: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "text",
+              text: date,
+              weight: "bold",
+              size: "xl",
+              color: "#FFFFFF"
             }
-        }
-
-        async function generateFlexMessage() {
-            const userInput = document.getElementById('userInput').value;
-            
-            generatedFlexMessage = {
-                "type": "bubble",
-                "body": {
-                    "type": "box",
-                    "layout": "vertical",
-                    "contents": [
-                        {
-                            "type": "text",
-                            "text": userInput,
-                            "wrap": true
-                        }
-                    ]
-                }
-            };
-            
-            document.getElementById('shareButton').style.display = 'inline-block';
-            document.getElementById('result').innerHTML = `
-                <h3>生成されたFlexメッセージ:</h3>
-                <pre>${JSON.stringify(generatedFlexMessage, null, 2)}</pre>
-            `;
-        }
-
-        async function shareMessage() {
-            if (!liff.isApiAvailable('shareTargetPicker')) {
-                alert("ShareTargetPicker is not available");
-                return;
-            }
-
-            try {
-                const result = await liff.shareTargetPicker([
+          ],
+          backgroundColor: "#27ACB2",
+          paddingAll: "20px"
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "text",
+              text: "体重",
+              weight: "bold",
+              size: "md"
+            },
+            {
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
                     {
-                        type: "flex",
-                        altText: "Flex Message",
-                        contents: generatedFlexMessage
+                      type: "text",
+                      text: "現在",
+                      size: "sm",
+                      color: "#555555"
+                    },
+                    {
+                      type: "text",
+                      text: "66 kg",
+                      size: "xl",
+                      color: "#111111",
+                      weight: "bold"
+                    },
+                    {
+                      type: "text",
+                      text: "前日比: -1kg",
+                      size: "xs",
+                      color: "#27ACB2"
                     }
-                ]);
-                if (result) {
-                    alert("メッセージが正常に共有されました！");
-                } else {
-                    alert("共有前にShareTargetPickerが閉じられました。");
+                  ],
+                  flex: 1
+                },
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "目標",
+                      size: "sm",
+                      color: "#555555"
+                    },
+                    {
+                      type: "text",
+                      text: "62 kg",
+                      size: "xl",
+                      color: "#111111",
+                      weight: "bold"
+                    },
+                    {
+                      type: "text",
+                      text: "残り: 4kg",
+                      size: "xs",
+                      color: "#888888"
+                    }
+                  ],
+                  flex: 1
                 }
-            } catch (error) {
-                console.error('メッセージ共有エラー:', error);
-                alert("メッセージの共有中にエラーが発生しました。");
+              ]
+            },
+            {
+              type: "separator",
+              margin: "xl"
+            },
+            {
+              type: "text",
+              text: "カロリー",
+              weight: "bold",
+              size: "md",
+              margin: "xl"
+            },
+            {
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "摂取",
+                      size: "sm",
+                      color: "#555555"
+                    },
+                    {
+                      type: "text",
+                      text: "1250 kcal",
+                      size: "xl",
+                      color: "#111111",
+                      weight: "bold"
+                    },
+                    {
+                      type: "text",
+                      text: "目標: 1500 kcal",
+                      size: "xs",
+                      color: "#888888"
+                    }
+                  ],
+                  flex: 1
+                },
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "消費",
+                      size: "sm",
+                      color: "#555555"
+                    },
+                    {
+                      type: "text",
+                      text: "450 kcal",
+                      size: "xl",
+                      color: "#111111",
+                      weight: "bold"
+                    },
+                    {
+                      type: "text",
+                      text: "目標: 500 kcal",
+                      size: "xs",
+                      color: "#888888"
+                    }
+                  ],
+                  flex: 1
+                }
+              ]
             }
+          ]
+        },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "詳細を見る",
+                text: date + "の健康データの詳細を見る"
+              },
+              style: "primary",
+              color: "#27ACB2"
+            }
+          ]
         }
+      }
+    };
 
-        window.onload = initializeLiff;
-    </script>
-</body>
-</html>
+    try {
+      await liff.sendMessages([flexMessage]);
+      liff.closeWindow();
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  if (!isLiffInitialized) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="p-4 bg-gray-100 h-screen">
+      <div className="flex justify-between items-center mb-4">
+        <button onClick={handlePrevWeek} className="p-2 bg-blue-500 text-white rounded">
+          <ChevronLeft size={24} />
+        </button>
+        <div className="text-lg font-bold">
+          {weekDates[0]} - {weekDates[6]}
+        </div>
+        <button onClick={handleNextWeek} className="p-2 bg-blue-500 text-white rounded">
+          <ChevronRight size={24} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {weekDates.map((date) => (
+          <button
+            key={date}
+            onClick={() => sendFlexMessage(date)}
+            className="p-2 bg-white rounded shadow text-center"
+          >
+            <div className="text-sm">{new Date(date).toLocaleDateString('ja-JP', { weekday: 'short' })}</div>
+            <div className="font-bold">{new Date(date).getDate()}</div>
+            <Calendar size={24} className="mx-auto mt-2" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default WeekCalendar;
