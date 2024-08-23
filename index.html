@@ -1,282 +1,205 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import liff from '@line/liff';
-
-const WeekCalendar = () => {
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [isLiffInitialized, setIsLiffInitialized] = useState(false);
-
-  useEffect(() => {
-    // LIFFの初期化
-    const liffId = "1661032313-WdPDq4PV";
-    if (!liffId) {
-      console.error('LIFF ID is not defined');
-      return;
-    }
-
-    liff.init({ liffId })
-      .then(() => {
-        console.log('LIFF initialized successfully');
-        setIsLiffInitialized(true);
-      })
-      .catch((error) => {
-        console.error('LIFF initialization failed', error);
-      });
-  }, []);
-
-  const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const getWeekDates = (date) => {
-    const week = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(date);
-      day.setDate(date.getDate() - date.getDay() + i);
-      week.push(formatDate(day));
-    }
-    return week;
-  };
-
-  const weekDates = getWeekDates(currentWeek);
-
-  const handlePrevWeek = () => {
-    const newDate = new Date(currentWeek);
-    newDate.setDate(newDate.getDate() - 7);
-    setCurrentWeek(newDate);
-  };
-
-  const handleNextWeek = () => {
-    const newDate = new Date(currentWeek);
-    newDate.setDate(newDate.getDate() + 7);
-    setCurrentWeek(newDate);
-  };
-
-  const sendFlexMessage = async (date) => {
-    if (!liff.isInClient()) {
-      alert('This button is only available in LINE app');
-      return;
-    }
-
-    const flexMessage = {
-      type: "flex",
-      altText: "健康記録 " + date,
-      contents: {
-        type: "bubble",
-        size: "giga",
-        header: {
-          type: "box",
-          layout: "vertical",
-          contents: [
-            {
-              type: "text",
-              text: date,
-              weight: "bold",
-              size: "xl",
-              color: "#FFFFFF"
-            }
-          ],
-          backgroundColor: "#27ACB2",
-          paddingAll: "20px"
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          contents: [
-            {
-              type: "text",
-              text: "体重",
-              weight: "bold",
-              size: "md"
-            },
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "現在",
-                      size: "sm",
-                      color: "#555555"
-                    },
-                    {
-                      type: "text",
-                      text: "66 kg",
-                      size: "xl",
-                      color: "#111111",
-                      weight: "bold"
-                    },
-                    {
-                      type: "text",
-                      text: "前日比: -1kg",
-                      size: "xs",
-                      color: "#27ACB2"
-                    }
-                  ],
-                  flex: 1
-                },
-                {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "目標",
-                      size: "sm",
-                      color: "#555555"
-                    },
-                    {
-                      type: "text",
-                      text: "62 kg",
-                      size: "xl",
-                      color: "#111111",
-                      weight: "bold"
-                    },
-                    {
-                      type: "text",
-                      text: "残り: 4kg",
-                      size: "xs",
-                      color: "#888888"
-                    }
-                  ],
-                  flex: 1
-                }
-              ]
-            },
-            {
-              type: "separator",
-              margin: "xl"
-            },
-            {
-              type: "text",
-              text: "カロリー",
-              weight: "bold",
-              size: "md",
-              margin: "xl"
-            },
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "摂取",
-                      size: "sm",
-                      color: "#555555"
-                    },
-                    {
-                      type: "text",
-                      text: "1250 kcal",
-                      size: "xl",
-                      color: "#111111",
-                      weight: "bold"
-                    },
-                    {
-                      type: "text",
-                      text: "目標: 1500 kcal",
-                      size: "xs",
-                      color: "#888888"
-                    }
-                  ],
-                  flex: 1
-                },
-                {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "消費",
-                      size: "sm",
-                      color: "#555555"
-                    },
-                    {
-                      type: "text",
-                      text: "450 kcal",
-                      size: "xl",
-                      color: "#111111",
-                      weight: "bold"
-                    },
-                    {
-                      type: "text",
-                      text: "目標: 500 kcal",
-                      size: "xs",
-                      color: "#888888"
-                    }
-                  ],
-                  flex: 1
-                }
-              ]
-            }
-          ]
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "message",
-                label: "詳細を見る",
-                text: date + "の健康データの詳細を見る"
-              },
-              style: "primary",
-              color: "#27ACB2"
-            }
-          ]
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>週間健康カレンダー</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
         }
-      }
-    };
-
-    try {
-      await liff.sendMessages([flexMessage]);
-      liff.closeWindow();
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
-
-  if (!isLiffInitialized) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <div className="p-4 bg-gray-100 h-screen">
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={handlePrevWeek} className="p-2 bg-blue-500 text-white rounded">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-lg font-bold">
-          {weekDates[0]} - {weekDates[6]}
+        .calendar-container {
+            max-width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+        }
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .week-dates {
+            font-weight: bold;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        .day-button {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .day-button:hover {
+            background-color: #f0f0f0;
+        }
+        .weekday {
+            font-size: 0.8em;
+            color: #666;
+        }
+        .date {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <div class="week-navigation">
+            <button onclick="changeWeek(-1)">&lt; 前週</button>
+            <span class="week-dates" id="weekDates"></span>
+            <button onclick="changeWeek(1)">次週 &gt;</button>
         </div>
-        <button onClick={handleNextWeek} className="p-2 bg-blue-500 text-white rounded">
-          <ChevronRight size={24} />
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-2">
-        {weekDates.map((date) => (
-          <button
-            key={date}
-            onClick={() => sendFlexMessage(date)}
-            className="p-2 bg-white rounded shadow text-center"
-          >
-            <div className="text-sm">{new Date(date).toLocaleDateString('ja-JP', { weekday: 'short' })}</div>
-            <div className="font-bold">{new Date(date).getDate()}</div>
-            <Calendar size={24} className="mx-auto mt-2" />
-          </button>
-        ))}
-      </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
     </div>
-  );
-};
 
-export default WeekCalendar;
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        let currentDate = new Date();
+
+        function initializeLiff() {
+            const liffId = "1661032313-WdPDq4PV"; // ここにLIFF IDを設定してください
+            liff.init({ liffId: liffId })
+                .then(() => {
+                    console.log("LIFF initialized successfully");
+                    updateCalendar();
+                })
+                .catch((error) => {
+                    console.error("LIFF initialization failed", error);
+                });
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function getWeekDates(date) {
+            const week = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(date);
+                day.setDate(date.getDate() - date.getDay() + i);
+                week.push(formatDate(day));
+            }
+            return week;
+        }
+
+        function updateCalendar() {
+            const weekDates = getWeekDates(currentDate);
+            document.getElementById('weekDates').textContent = `${weekDates[0]} - ${weekDates[6]}`;
+
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            weekDates.forEach(date => {
+                const dayDate = new Date(date);
+                const dayButton = document.createElement('div');
+                dayButton.className = 'day-button';
+                dayButton.onclick = () => sendFlexMessage(date);
+
+                const weekday = document.createElement('div');
+                weekday.className = 'weekday';
+                weekday.textContent = dayDate.toLocaleDateString('ja-JP', { weekday: 'short' });
+
+                const dateElement = document.createElement('div');
+                dateElement.className = 'date';
+                dateElement.textContent = dayDate.getDate();
+
+                dayButton.appendChild(weekday);
+                dayButton.appendChild(dateElement);
+                calendarGrid.appendChild(dayButton);
+            });
+        }
+
+        function changeWeek(direction) {
+            currentDate.setDate(currentDate.getDate() + direction * 7);
+            updateCalendar();
+        }
+
+        function sendFlexMessage(date) {
+            if (!liff.isInClient()) {
+                alert('This button is only available in the LINE app');
+                return;
+            }
+
+            const flexMessage = {
+                type: "flex",
+                altText: "健康記録 " + date,
+                contents: {
+                    type: "bubble",
+                    header: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            {
+                                type: "text",
+                                text: date,
+                                weight: "bold",
+                                size: "xl",
+                                color: "#FFFFFF"
+                            }
+                        ],
+                        backgroundColor: "#27ACB2",
+                        paddingAll: "20px"
+                    },
+                    body: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            {
+                                type: "text",
+                                text: "体重: 66kg (目標: 62kg)",
+                                wrap: true
+                            },
+                            {
+                                type: "text",
+                                text: "摂取カロリー: 1250kcal",
+                                wrap: true
+                            },
+                            {
+                                type: "text",
+                                text: "消費カロリー: 450kcal",
+                                wrap: true
+                            }
+                        ]
+                    }
+                }
+            };
+
+            liff.sendMessages([flexMessage])
+                .then(() => {
+                    console.log('Message sent');
+                    liff.closeWindow();
+                })
+                .catch((error) => {
+                    console.error('Error sending message:', error);
+                });
+        }
+
+        window.onload = initializeLiff;
+    </script>
+</body>
+</html>
